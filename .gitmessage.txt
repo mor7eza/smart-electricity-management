@@ -1,0 +1,29 @@
+# <type>(<scope>): <short summary>
+# Types (common for Go projects):
+#   feat      – new feature (e.g., new API endpoint, CLI flag)
+#   fix       – bug fix
+#   docs      – documentation changes (README, comments)
+#   style     – code style (gofmt, imports, naming; no logic change)
+#   refactor  – restructuring code without changing behavior
+#   test      – add/update tests (unit, integration)
+#   chore     – maintenance (deps, config, Dockerfile, Makefile)
+#   perf      – performance improvements
+#   build     – changes to build scripts (Docker, Makefile, CI/CD)
+#   ci        – changes to CI/CD pipelines or configs
+
+# Short summary (imperative mood, max 50 chars)
+# Example: feat(readme): add project setup instructions
+
+<type>(<scope>): <summary>
+
+# Body (optional, wrap at 72 chars)
+# WHAT changed and WHY (focus on reasoning, not just changes)
+# Example:
+# - Added initial README for project setup
+# - Documented Go environment configuration
+# - Included usage examples for CLI commands
+#
+# References: Closes #123
+
+# Footer (optional: breaking changes, migrations)
+# BREAKING CHANGE: <description>
