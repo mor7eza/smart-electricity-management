@@ -18,13 +18,8 @@ type App struct {
 }
 
 func main() {
-	config, err := config.LoadConfig()
-	if err != nil {
-		logrus.Fatalf("error loading config data: %v", err)
-	}
-
 	app := App{
-		Config: config,
+		Config: config.LoadConfig(),
 	}
 
 	srv := &http.Server{
@@ -37,6 +32,10 @@ func main() {
 			"Address": app.Config.Server.Address,
 			"Port":    app.Config.Server.Port,
 		}).Info("API-Gateway service started")
+
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logrus.Fatalf("error starting server: %v", err)
+		}
 	}()
 
 	quit := make(chan os.Signal, 1)
