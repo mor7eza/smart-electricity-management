@@ -38,6 +38,7 @@ func main() {
 
 			for range ticker.C {
 				fmt.Println("Meter", i+1, "-> Sent")
+				consumed := float64(rand.IntN(100)) / 10
 				data := types.LoggerData{
 					SchemaVersion:   1,
 					DeviceID:        deviceID,
@@ -45,21 +46,21 @@ func main() {
 					FirmwareVersion: "1.0.0",
 					MeterReading: types.MeterReading{
 						Voltage: types.ThreePhase{
-							PhaseA: 220.5,
-							PhaseB: 220.5,
-							PhaseC: 220.5,
+							PhaseA: float32(200+rand.IntN(50)) + float32(rand.IntN(10))/10,
+							PhaseB: float32(200+rand.IntN(50)) + float32(rand.IntN(10))/10,
+							PhaseC: float32(200+rand.IntN(50)) + float32(rand.IntN(10))/10,
 						},
 						Current: types.ThreePhase{
-							PhaseA: 3.5,
-							PhaseB: 4.5,
-							PhaseC: 5.5,
+							PhaseA: float32(rand.IntN(100)),
+							PhaseB: float32(rand.IntN(100)),
+							PhaseC: float32(rand.IntN(100)),
 						},
-						Frequency:         55,
-						PowerFactor:       98,
-						ActivePowerKW:     10,
-						ReactivePowerKVAR: 20,
-						ApparentPowerKVA:  30,
-						EnergyConsumedKWH: 1234.5,
+						Frequency:         50 + float32(rand.IntN(100))/10,
+						PowerFactor:       1,
+						ActivePowerKW:     500,
+						ReactivePowerKVAR: 200,
+						ApparentPowerKVA:  800,
+						EnergyConsumedKWH: 1234.5 + consumed,
 						EnergyExportedKWH: 5,
 					},
 					Events: []types.Event{},
@@ -68,7 +69,7 @@ func main() {
 						Longitude: 12.436432,
 					},
 					SignalStrengthDBM:   -67,
-					BatteryLevelPercent: 90,
+					BatteryLevelPercent: 100,
 					Status:              "OK",
 				}
 
