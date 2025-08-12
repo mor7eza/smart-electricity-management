@@ -1,1 +1,3 @@
-count: 10
+mqtt:
+  address: "localhost"
+  port: 1883
