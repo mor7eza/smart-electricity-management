@@ -5,7 +5,8 @@ import (
 )
 
 type Config struct {
-	MQTT MQTT
+	MQTT     MQTT
+	RabbitMQ RabbitMQ
 }
 
 type MQTT struct {
@@ -13,6 +14,10 @@ type MQTT struct {
 	Port     int
 	Topic    string
 	ClientID string
+}
+
+type RabbitMQ struct {
+	URL string
 }
 
 func LoadConfig() Config {
@@ -24,6 +29,9 @@ func LoadConfig() Config {
 			Port:     viper.GetInt("MQTT_PORT"),
 			Topic:    viper.GetString("MQTT_TOPIC"),
 			ClientID: viper.GetString("MQTT_CLIENT_ID"),
+		},
+		RabbitMQ: RabbitMQ{
+			URL: viper.GetString("RABBITMQ_URL"),
 		},
 	}
 

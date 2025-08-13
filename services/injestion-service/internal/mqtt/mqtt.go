@@ -1,18 +1,19 @@
 package mqtt_broker
 
 import (
-	"fmt"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/sirupsen/logrus"
 )
 
-func RunMqttClient(brokerURL, clientID, topic string, quit chan bool) {
+func RunMqttClient(brokerURL, clientID, topic string, out chan []byte, quit chan bool) {
 	opts := mqtt.NewClientOptions().
 		AddBroker(brokerURL).
 		SetClientID(clientID).
-		SetDefaultPublishHandler(ProcessMessages).
+		SetDefaultPublishHandler(func(c mqtt.Client, m mqtt.Message) {
+			out <- m.Payload()
+		}).
 		SetKeepAlive(60 * time.Second).
 		SetPingTimeout(1 * time.Second)
 
@@ -40,8 +41,4 @@ func RunMqttClient(brokerURL, clientID, topic string, quit chan bool) {
 	<-quit
 	client.Disconnect(250)
 	logrus.Info("MQTT disconnected")
-}
-
-func ProcessMessages(client mqtt.Client, msg mqtt.Message) {
-	fmt.Println("recieved")
 }
