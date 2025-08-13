@@ -1,38 +1,31 @@
 package config
 
 import (
-	"fmt"
-
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	MQTT MQTT `mapstructure:"mqtt"`
+	MQTT MQTT
 }
 
 type MQTT struct {
-	Address  string `mapstructure:"address"`
-	Port     int    `mapstructure:"port"`
-	Topic    string `mapstructure:"topic"`
-	ClientID string `mapstructure:"client_id"`
+	Address  string
+	Port     int
+	Topic    string
+	ClientID string
 }
 
 func LoadConfig() Config {
-	viper.AddConfigPath("./internal/config")
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err != nil {
-		logrus.Fatalf("error reading config file: %v", err)
+	config := Config{
+		MQTT: MQTT{
+			Address:  viper.GetString("MQTT_ADDRESS"),
+			Port:     viper.GetInt("MQTT_PORT"),
+			Topic:    viper.GetString("MQTT_TOPIC"),
+			ClientID: viper.GetString("MQTT_CLIENT_ID"),
+		},
 	}
 
-	var config Config
-	if err := viper.Unmarshal(&config); err != nil {
-		logrus.Fatalf("error unmarshalling config data: %v", err)
-	}
-
-	fmt.Println(config)
 	return config
 }

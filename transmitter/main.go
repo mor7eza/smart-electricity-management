@@ -11,6 +11,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -18,6 +19,11 @@ func main() {
 	count := flag.Int("count", 10, "Number of loggers to simulate")
 	interval := flag.Int("interval", 60, "Interval in seconds between sending data to the server")
 	flag.Parse()
+
+	logrus.WithFields(logrus.Fields{
+		"Count":    *count,
+		"Interval": *interval,
+	}).Info("Transmitter started successfully")
 
 	for i := 0; i < *count; i++ {
 		go func() {
@@ -35,14 +41,24 @@ func main() {
 				SetCleanSession(true)
 
 			client := mqtt.NewClient(opts)
-			if token := client.Connect(); token.Wait() && token.Error() != nil {
-				log.Fatalf("Failed to connect: %v", token.Error())
+			for {
+				if token := client.Connect(); token.Wait() && token.Error() != nil {
+					logrus.Errorf("Failed to connect: %v", token.Error())
+					logrus.Info("trying to connect in 10 seconds...")
+					time.Sleep(10 * time.Second)
+					continue
+				}
+				break
 			}
 			defer client.Disconnect(250)
 
+			logrus.Infof("Logger %d successfully connected to EMQX", i+1)
+
+			consumed := 0.0
+
 			for range ticker.C {
-				fmt.Println("Meter", i+1, "-> Sent")
-				consumed := float64(rand.IntN(100)) / 10
+				logrus.Info("Send data from logger", i+1)
+				consumed += float64(rand.IntN(100)) / 10
 				data := types.LoggerData{
 					SchemaVersion:   1,
 					DeviceID:        deviceID,

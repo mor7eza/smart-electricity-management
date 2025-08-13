@@ -1,4 +1,0 @@
-mqtt:
-  address: "localhost"
-  port: 1883
-  topic: "loggers"

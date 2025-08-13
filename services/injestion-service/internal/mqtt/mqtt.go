@@ -2,7 +2,6 @@ package mqtt_broker
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -18,14 +17,25 @@ func RunMqttClient(brokerURL, clientID, topic string, quit chan bool) {
 		SetPingTimeout(1 * time.Second)
 
 	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("error connecting to MQTT server: %v", token.Error())
+	for {
+		if token := client.Connect(); token.Wait() && token.Error() != nil {
+			logrus.Errorf("error connecting to MQTT server: %v", token.Error())
+			logrus.Info("trying to connect in 10 seconds...")
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
+			client.Disconnect(250)
+			logrus.Errorf("error subscribing to MQTT topic: %v", token.Error())
+			logrus.Info("trying to reconnect and subscribe in 10 seconds...")
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
 	}
 
-	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-		client.Disconnect(250)
-		log.Fatalf("error subscribing to MQTT topic: %v", token.Error())
-	}
+	logrus.Info("Successfully subscribed to EMQX")
 
 	<-quit
 	client.Disconnect(250)

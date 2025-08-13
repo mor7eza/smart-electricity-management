@@ -29,6 +29,8 @@ func main() {
 		mqqtQuit,
 	)
 
+	logrus.Info("Service Started Successfully")
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	<-quit

@@ -1,0 +1,38 @@
+services:
+  emqx:
+    image: emqx/emqx:latest
+    ports:
+      - "1883:1883" # tcp port
+      - "18083:18083" # Dashboard
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Dashboard
+
+  transmitter:
+    build:
+      context: ./transmitter
+      dockerfile: Dockerfile
+    environment:
+      - MQTT_ADDRESS=emqx
+      - MQTT_PORT=1883
+      - MQTT_TOPIC=loggers
+      - COUNT=100
+      - INTERVAL=30
+    depends_on:
+      - emqx
+
+  injestion-service:
+    build:
+      context: ./services/injestion-service
+      dockerfile: Dockerfile
+    environment:
+      - MQTT_ADDRESS=emqx
+      - MQTT_PORT=1883
+      - MQTT_TOPIC=loggers
+      - MQTT_CLIENT_ID=injestion
+    depends_on:
+      - emqx
+      - rabbitmq

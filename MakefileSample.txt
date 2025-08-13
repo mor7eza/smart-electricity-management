@@ -1,0 +1,174 @@
+# Smart Energy Management Platform Makefile
+
+# MQTT Broker (EMQX)
+.PHONY: emqx
+emqx:
+	@echo "Starting EMQX MQTT broker..."
+	@docker run -d --rm --name emqx -p 1883:1883 -p 18083:18083 emqx/emqx
+	@echo "EMQX started - MQTT on port 1883, Dashboard on port 18083"
+	@echo "Waiting for EMQX to be ready..."
+	@sleep 5
+
+# Message Queue (RabbitMQ)
+.PHONY: rabbitmq
+rabbitmq:
+	@echo "Starting RabbitMQ..."
+	@docker run -d --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4-management
+	@echo "RabbitMQ started - AMQP on port 5672, Management UI on port 15672"
+	@sleep 5
+
+# Data Transmitter
+.PHONY: transmitter
+transmitter:
+	@echo "Starting transmitter with 100 loggers, 60s interval..."
+	@cd ./transmitter && go run . -count=100 -interval=60
+
+# API Gateway Service
+.PHONY: api-gateway
+api-gateway:
+	@echo "Starting API Gateway..."
+	@cd ./services/api-gateway && go run ./cmd
+
+# Data Ingestion Service
+.PHONY: ingestion-service
+ingestion-service:
+	@echo "Starting Ingestion Service..."
+	@cd ./services/injestion-service && go run ./cmd
+
+# Build all Go modules
+.PHONY: build
+build:
+	@echo "Building transmitter..."
+	@cd ./transmitter && go build -o ../bin/transmitter .
+	@echo "Building API gateway..."
+	@cd ./services/api-gateway && go build -o ../../bin/api-gateway ./cmd
+	@echo "Building ingestion service..."
+	@cd ./services/injestion-service && go build -o ../../bin/ingestion-service ./cmd
+	@echo "All services built successfully!"
+
+# Download dependencies
+.PHONY: deps
+deps:
+	@echo "Downloading dependencies..."
+	@cd ./transmitter && go mod download
+	@cd ./services/api-gateway && go mod download
+	@cd ./services/injestion-service && go mod download
+
+# Run tests
+.PHONY: test
+test:
+	@echo "Running tests..."
+	@cd ./transmitter && go test ./...
+	@cd ./services/api-gateway && go test ./...
+	@cd ./services/injestion-service && go test ./...
+
+# Development environment - start all infrastructure
+.PHONY: infra
+infra: emqx rabbitmq
+	@echo "Infrastructure services started successfully!"
+
+# Development environment - start all services
+.PHONY: services
+services: ingestion-service api-gateway
+	@echo "Application services started!"
+
+# Full development environment
+.PHONY: dev
+dev: infra
+	@echo "Starting development environment..."
+	@sleep 2
+	@$(MAKE) services
+
+# Start everything including data generation
+.PHONY: all
+all: infra
+	@sleep 2
+	@echo "Starting all services..."
+	@$(MAKE) ingestion-service &
+	@sleep 2
+	@$(MAKE) api-gateway &
+	@sleep 2
+	@$(MAKE) transmitter
+
+# Stop and remove all Docker containers
+.PHONY: stop
+stop:
+	@echo "Stopping all containers..."
+	-@docker stop emqx rabbitmq 2>/dev/null || true
+	@echo "All containers stopped!"
+
+# Clean up everything
+.PHONY: clean
+clean: stop
+	@echo "Cleaning up..."
+	-@rm -rf ./bin/
+	@cd ./transmitter && go clean
+	@cd ./services/api-gateway && go clean
+	@cd ./services/injestion-service && go clean
+	@echo "Clean up complete!"
+
+# Show running containers and services
+.PHONY: status
+status:
+	@echo "=== Docker Containers ==="
+	@docker ps --filter "name=emqx" --filter "name=rabbitmq"
+	@echo ""
+	@echo "=== Port Usage ==="
+	@echo "MQTT Broker (EMQX): localhost:1883"
+	@echo "EMQX Dashboard: http://localhost:18083 (admin/public)"
+	@echo "RabbitMQ: localhost:5672"
+	@echo "RabbitMQ Management: http://localhost:15672 (guest/guest)"
+
+# Show logs from MQTT broker
+.PHONY: logs-mqtt
+logs-mqtt:
+	@docker logs -f emqx
+
+# Show logs from RabbitMQ
+.PHONY: logs-rabbitmq
+logs-rabbitmq:
+	@docker logs -f rabbitmq
+
+# Quick MQTT test - publish a test message
+.PHONY: mqtt-test
+mqtt-test:
+	@echo "Testing MQTT connection..."
+	@docker exec emqx emqx_ctl status
+	@echo "Publishing test message to 'loggers' topic..."
+	@echo '{"test": "message", "timestamp": '$(shell date +%s)'}' | docker exec -i emqx mosquitto_pub -h localhost -t loggers -s
+
+# Help target
+.PHONY: help
+help:
+	@echo "Smart Energy Management Platform - Available Commands:"
+	@echo ""
+	@echo "Infrastructure:"
+	@echo "  emqx              - Start EMQX MQTT broker"
+	@echo "  rabbitmq          - Start RabbitMQ message queue"
+	@echo "  infra             - Start all infrastructure services"
+	@echo ""
+	@echo "Services:"
+	@echo "  transmitter       - Start data transmitter (100 loggers)"
+	@echo "  api-gateway       - Start API gateway service"
+	@echo "  ingestion-service - Start data ingestion service"
+	@echo "  services          - Start all application services"
+	@echo ""
+	@echo "Development:"
+	@echo "  dev               - Start full development environment"
+	@echo "  all               - Start everything including data generation"
+	@echo "  build             - Build all services"
+	@echo "  deps              - Download all dependencies"
+	@echo "  test              - Run all tests"
+	@echo ""
+	@echo "Management:"
+	@echo "  status            - Show running services and ports"
+	@echo "  stop              - Stop all Docker containers"
+	@echo "  clean             - Stop containers and clean build artifacts"
+	@echo "  logs-mqtt         - Show MQTT broker logs"
+	@echo "  logs-rabbitmq     - Show RabbitMQ logs"
+	@echo "  mqtt-test         - Test MQTT connection"
+	@echo ""
+	@echo "Usage Examples:"
+	@echo "  make dev          - Start development environment"
+	@echo "  make all          - Start everything"
+	@echo "  make stop         - Stop all services"

@@ -1,34 +1,28 @@
 package main
 
 import (
-	"log"
-
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	MQTT MQTT `mapstructure:"mqtt"`
+	MQTT MQTT
 }
 
 type MQTT struct {
-	Address string `mapstructure:"address"`
-	Port    int    `mapstructure:"port"`
-	Topic   string `mapstructure:"topic"`
+	Address string
+	Port    int
+	Topic   string
 }
 
 func LoadConfig() Config {
-	viper.AddConfigPath("./")
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("error reading config data: %v", err)
-	}
-
-	var config Config
-	if err := viper.Unmarshal(&config); err != nil {
-		log.Fatalf("error unmarshalling config data: %v", err)
+	config := Config{
+		MQTT: MQTT{
+			Address: viper.GetString("MQTT_ADDRESS"),
+			Port:    viper.GetInt("MQTT_PORT"),
+			Topic:   viper.GetString("MQTT_TOPIC"),
+		},
 	}
 
 	return config
