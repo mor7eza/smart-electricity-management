@@ -7,7 +7,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const QUEUE_NAME = "loggers_data"
+const (
+	queueName     = "loggers_data"
+	retryInterval = 10 * time.Second
+)
 
 func Publisher(url string, messages chan []byte) {
 	conn := connectWithRetries(url)
@@ -16,10 +19,10 @@ func Publisher(url string, messages chan []byte) {
 	channel := openChannel(conn)
 	defer channel.Close()
 
-	declareQueue(channel, QUEUE_NAME)
+	declareQueue(channel, queueName)
 
 	for msg := range messages {
-		if err := publishMessage(channel, QUEUE_NAME, msg); err != nil {
+		if err := publishMessage(channel, queueName, msg); err != nil {
 			logrus.Errorf("failed to publish message: %v", err)
 		}
 	}
@@ -35,8 +38,8 @@ func connectWithRetries(url string) *amqp.Connection {
 			return conn
 		}
 		logrus.Errorf("failed to connect to RabbitMQ: %v", err)
-		logrus.Info("Retrying in 10 seconds...")
-		time.Sleep(10 * time.Second)
+		logrus.Infof("Retrying in %v...", retryInterval)
+		time.Sleep(retryInterval)
 	}
 }
 

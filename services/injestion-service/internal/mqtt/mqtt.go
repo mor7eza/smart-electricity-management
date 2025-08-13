@@ -7,6 +7,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	keepAlive     = 60 * time.Second
+	pingTimeout   = 1 * time.Second
+	retryInterval = 10 * time.Second
+)
+
 func RunMqttClient(brokerURL, clientID, topic string, out chan []byte, quit chan bool) {
 	opts := mqtt.NewClientOptions().
 		AddBroker(brokerURL).
@@ -14,31 +20,31 @@ func RunMqttClient(brokerURL, clientID, topic string, out chan []byte, quit chan
 		SetDefaultPublishHandler(func(c mqtt.Client, m mqtt.Message) {
 			out <- m.Payload()
 		}).
-		SetKeepAlive(60 * time.Second).
-		SetPingTimeout(1 * time.Second)
+		SetKeepAlive(keepAlive).
+		SetPingTimeout(pingTimeout)
 
 	client := mqtt.NewClient(opts)
 	for {
 		if token := client.Connect(); token.Wait() && token.Error() != nil {
-			logrus.Errorf("error connecting to MQTT server: %v", token.Error())
-			logrus.Info("trying to connect in 10 seconds...")
-			time.Sleep(10 * time.Second)
+			logrus.Errorf("failed to connect to MQTT broker: %v", token.Error())
+			logrus.Infof("Retrying in %v...", retryInterval)
+			time.Sleep(retryInterval)
 			continue
 		}
 
 		if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
 			client.Disconnect(250)
-			logrus.Errorf("error subscribing to MQTT topic: %v", token.Error())
-			logrus.Info("trying to reconnect and subscribe in 10 seconds...")
-			time.Sleep(10 * time.Second)
+			logrus.Errorf("failed to subscribe to MQTT broker: %v", token.Error())
+			logrus.Infof("Retrying in %v...", retryInterval)
+			time.Sleep(retryInterval)
 			continue
 		}
 		break
 	}
 
-	logrus.Info("Successfully subscribed to EMQX")
+	logrus.Info("Connected to MQTT broker")
 
 	<-quit
 	client.Disconnect(250)
-	logrus.Info("MQTT disconnected")
+	logrus.Info("MQTT broker disconnected")
 }
