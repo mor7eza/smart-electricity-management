@@ -13,6 +13,7 @@ type Config struct {
 type MQTT struct {
 	Address string `mapstructure:"address"`
 	Port    int    `mapstructure:"port"`
+	Topic   string `mapstructure:"topic"`
 }
 
 func LoadConfig() Config {

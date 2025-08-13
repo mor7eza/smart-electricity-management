@@ -2,3 +2,4 @@ mqtt:
   address: "localhost"
   port: 1883
   topic: "loggers"
+  client_id: "my-client"

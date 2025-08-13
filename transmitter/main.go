@@ -35,6 +35,10 @@ func main() {
 				SetCleanSession(true)
 
 			client := mqtt.NewClient(opts)
+			if token := client.Connect(); token.Wait() && token.Error() != nil {
+				log.Fatalf("Failed to connect: %v", token.Error())
+			}
+			defer client.Disconnect(250)
 
 			for range ticker.C {
 				fmt.Println("Meter", i+1, "-> Sent")
@@ -79,12 +83,7 @@ func main() {
 					continue
 				}
 
-				if token := client.Connect(); token.Wait() && token.Error() != nil {
-					log.Fatalf("Failed to connect: %v", token.Error())
-				}
-				defer client.Disconnect(250)
-
-				token := client.Publish("loggers", 0, false, payload)
+				token := client.Publish(config.MQTT.Topic, 0, false, payload)
 				token.Wait()
 			}
 		}()
