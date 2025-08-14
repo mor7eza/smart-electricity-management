@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	keepAlive     = 60 * time.Second
+	keepAlive     = 30 * time.Second
 	pingTimeout   = 1 * time.Second
 	retryInterval = 10 * time.Second
 )
@@ -20,6 +20,7 @@ func RunMqttClient(brokerURL, clientID, topic string, out chan []byte, quit chan
 		SetDefaultPublishHandler(func(c mqtt.Client, m mqtt.Message) {
 			out <- m.Payload()
 		}).
+		SetOrderMatters(false). // Allow out-of-order handling for speed
 		SetKeepAlive(keepAlive).
 		SetPingTimeout(pingTimeout)
 
