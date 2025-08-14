@@ -5,6 +5,7 @@ import (
 	"injestion-service/internal/config"
 	mqtt_broker "injestion-service/internal/mqtt"
 	"injestion-service/internal/rabbitmq"
+	redis_db "injestion-service/internal/redis"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,17 +24,19 @@ func main() {
 	}
 
 	mqttQuit := make(chan bool)
-	mqttMessages := make(chan []byte, 100)
+
+	redisClient := redis_db.NewClient(app.Config.Redis.URL)
+	defer redisClient.Close()
 
 	go mqtt_broker.RunMqttClient(
 		fmt.Sprintf("tcp://%s:%d", app.Config.MQTT.Address, app.Config.MQTT.Port),
 		app.Config.MQTT.ClientID,
 		app.Config.MQTT.Topic,
-		mqttMessages,
+		redisClient,
 		mqttQuit,
 	)
 
-	go rabbitmq.Publisher(app.Config.RabbitMQ.URL, mqttMessages)
+	go rabbitmq.Publisher(app.Config.RabbitMQ.URL, redisClient)
 
 	logrus.Info("Service Started Successfully")
 

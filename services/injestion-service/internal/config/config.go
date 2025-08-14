@@ -7,6 +7,7 @@ import (
 type Config struct {
 	MQTT     MQTT
 	RabbitMQ RabbitMQ
+	Redis    Redis
 }
 
 type MQTT struct {
@@ -17,6 +18,10 @@ type MQTT struct {
 }
 
 type RabbitMQ struct {
+	URL string
+}
+
+type Redis struct {
 	URL string
 }
 
@@ -32,6 +37,9 @@ func LoadConfig() Config {
 		},
 		RabbitMQ: RabbitMQ{
 			URL: viper.GetString("RABBITMQ_URL"),
+		},
+		Redis: Redis{
+			URL: viper.GetString("REDIS_URL"),
 		},
 	}
 

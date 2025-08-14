@@ -9,7 +9,7 @@ COPY . .
 
 RUN go build -o injestion-service ./cmd
 
-FROM alpine:3.9.6
+FROM alpine:latest
 
 WORKDIR /root/
 

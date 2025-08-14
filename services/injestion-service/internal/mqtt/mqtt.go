@@ -1,9 +1,12 @@
 package mqtt_broker
 
 import (
+	"context"
+	redis_db "injestion-service/internal/redis"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,12 +16,14 @@ const (
 	retryInterval = 10 * time.Second
 )
 
-func RunMqttClient(brokerURL, clientID, topic string, out chan []byte, quit chan bool) {
+func RunMqttClient(brokerURL, clientID, topic string, rdb *redis.Client, quit chan bool) {
+	var ctx = context.Background()
+
 	opts := mqtt.NewClientOptions().
 		AddBroker(brokerURL).
 		SetClientID(clientID).
 		SetDefaultPublishHandler(func(c mqtt.Client, m mqtt.Message) {
-			out <- m.Payload()
+			redis_db.Publish(ctx, rdb, "telemetry", m.Payload())
 		}).
 		SetOrderMatters(false). // Allow out-of-order handling for speed
 		SetKeepAlive(keepAlive).

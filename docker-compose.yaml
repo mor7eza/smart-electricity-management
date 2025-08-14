@@ -11,6 +11,16 @@ services:
       - "5672:5672"
       - "15672:15672" # Dashboard
 
+  redis:
+    image: redis:8.2
+    ports:
+      - 6379:6379
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    ports:
+      - 5540:5540 #Dashboard
+
   transmitter:
     build:
       context: ./transmitter
@@ -34,6 +44,7 @@ services:
       - MQTT_TOPIC=loggers
       - MQTT_CLIENT_ID=injestion
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - REDIS_URL=redis:6379
     depends_on:
       - emqx
       - rabbitmq

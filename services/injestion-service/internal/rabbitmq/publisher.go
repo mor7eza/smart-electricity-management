@@ -1,9 +1,11 @@
 package rabbitmq
 
 import (
+	"context"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,7 +14,7 @@ const (
 	retryInterval = 10 * time.Second
 )
 
-func Publisher(url string, messages chan []byte) {
+func Publisher(url string, rdb *redis.Client) {
 	conn := connectWithRetries(url)
 	defer conn.Close()
 
@@ -21,13 +23,22 @@ func Publisher(url string, messages chan []byte) {
 
 	declareQueue(channel, queueName)
 
-	for msg := range messages {
-		if err := publishMessage(channel, queueName, msg); err != nil {
+	ctx := context.Background()
+
+	for {
+		result, err := rdb.BRPop(ctx, 0*time.Second, "telemetry").Result()
+		if err != nil {
+			logrus.Errorf("error reading from Redis telemetry list: %v", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		valByte := []byte(result[1])
+
+		if err := publishMessage(channel, queueName, valByte); err != nil {
 			logrus.Errorf("failed to publish message: %v", err)
 		}
 	}
-
-	logrus.Warn("Publisher: messages channel closed, exiting")
 }
 
 func connectWithRetries(url string) *amqp.Connection {
