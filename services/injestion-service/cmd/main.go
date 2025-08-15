@@ -21,7 +21,7 @@ func main() {
 	app := App{}
 	app.RedisService = *redis_db.NewService()
 
-	app.MqttService = *mqtt_broker.NewService(app.RedisService.Client)
+	app.MqttService = *mqtt_broker.NewService(&app.RedisService)
 
 	go app.MqttService.Run()
 

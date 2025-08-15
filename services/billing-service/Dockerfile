@@ -7,12 +7,12 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o transmitter .
+RUN go build -o billing-service ./cmd
 
 FROM alpine:latest
 
 WORKDIR /root/
 
-COPY --from=builder /app/transmitter .
+COPY --from=builder /app/billing-service .
 
-CMD ["sh", "-c", "./transmitter --count=$COUNT --interval=$INTERVAL"]
+CMD ["./billing-service"]

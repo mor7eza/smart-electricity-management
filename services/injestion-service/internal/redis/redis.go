@@ -38,5 +38,8 @@ func NewService() *RedisService {
 }
 
 func (rs *RedisService) Publish(ctx context.Context, streamName string, payload []byte) {
-	rs.Client.LPush(ctx, "telemetry", payload)
+	err := rs.Client.LPush(ctx, "telemetry", payload).Err()
+	if err != nil {
+		logrus.Errorf("error pushing to redis: %v", err)
+	}
 }

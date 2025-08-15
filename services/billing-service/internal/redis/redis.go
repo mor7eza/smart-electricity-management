@@ -6,10 +6,17 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
-func NewClient(url string) *redis.Client {
+type RedisService struct {
+	Client *redis.Client
+}
+
+func NewService() *RedisService {
+	url := viper.GetString("REDIS_URL")
 	ctx := context.Background()
+
 	for {
 		client := redis.NewClient(&redis.Options{
 			Addr: url,
@@ -19,7 +26,9 @@ func NewClient(url string) *redis.Client {
 		err := client.Ping(ctx).Err()
 		if err == nil {
 			logrus.Info("Connected to Redis")
-			return client
+			return &RedisService{
+				Client: client,
+			}
 		}
 
 		logrus.Errorf("failed to connect to Redis: %v", err)

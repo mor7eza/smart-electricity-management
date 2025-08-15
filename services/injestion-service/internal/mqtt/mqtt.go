@@ -2,10 +2,11 @@ package mqtt_broker
 
 import (
 	"context"
+	"fmt"
+	redis_db "injestion-service/internal/redis"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -20,12 +21,15 @@ const (
 	retryInterval = 10 * time.Second
 )
 
-func NewService(rdb *redis.Client) *MqttService {
+func NewService(rdb *redis_db.RedisService) *MqttService {
 	var (
-		url      = viper.GetString("MQTT_URL")
+		address  = viper.GetString("MQTT_ADDRESS")
+		port     = viper.GetString("MQTT_PORT")
 		clientID = viper.GetString("MQTT_CLIENT_ID")
 		ctx      = context.Background()
 	)
+
+	url := fmt.Sprintf("tcp://%s:%s", address, port)
 
 	opts := mqtt.NewClientOptions().
 		AddBroker(url).
