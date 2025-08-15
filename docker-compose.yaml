@@ -36,8 +36,8 @@ services:
       - MQTT_ADDRESS=emqx
       - MQTT_PORT=1883
       - MQTT_TOPIC=loggers
-      - COUNT=1000
-      - INTERVAL=60
+      - COUNT=10
+      - INTERVAL=10
     depends_on:
       - emqx
 

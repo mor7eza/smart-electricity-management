@@ -34,9 +34,10 @@ func (app *App) Process() {
 		}
 
 		// process consumed energy and save to redis. id, consumed today, totalconsume, timestamp
+		loggerDate := time.Unix(loggerData.Timestamp, 0).Format("2006-01-02")
 		app.RedisService.Client.HSet(
 			ctx,
-			fmt.Sprintf("logger:%s", loggerData.DeviceID),
+			fmt.Sprintf("loggers:%s:%s", loggerDate, loggerData.DeviceID),
 			map[string]any{
 				"timestamp":         loggerData.Timestamp,
 				"EnergyConsumedKWH": loggerData.MeterReading.EnergyConsumedKWH,
