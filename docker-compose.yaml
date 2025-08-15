@@ -1,3 +1,8 @@
+networks:
+  mqtt_net:
+  rabbitmq_net:
+  redis_net:
+
 services:
   emqx:
     image: emqx/emqx:latest
@@ -20,6 +25,8 @@ services:
     image: redis/redisinsight:latest
     ports:
       - 5540:5540 #Dashboard
+    depends_on:
+      - redis
 
   transmitter:
     build:
@@ -43,8 +50,8 @@ services:
       - MQTT_PORT=1883
       - MQTT_TOPIC=loggers
       - MQTT_CLIENT_ID=injestion
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - REDIS_URL=redis:6379
     depends_on:
       - emqx
       - rabbitmq
+      - redis

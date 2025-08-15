@@ -7,23 +7,33 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
+
+type RabbitMQService struct {
+	Conn    *amqp.Connection
+	Channel *amqp.Channel
+}
 
 const (
 	queueName     = "loggers_data"
 	retryInterval = 10 * time.Second
 )
 
-func Publisher(url string, rdb *redis.Client) {
-	conn := connectWithRetries(url)
-	defer conn.Close()
+func NewService() {}
 
-	channel := openChannel(conn)
-	defer channel.Close()
+func (rs *RabbitMQService) RunPublisher(rdb *redis.Client) {
+	var (
+		ctx = context.Background()
+	)
 
-	declareQueue(channel, queueName)
+	rs.connectWithRetries()
+	defer rs.Conn.Close()
 
-	ctx := context.Background()
+	rs.openChannel()
+	defer rs.Channel.Close()
+
+	rs.declareQueue()
 
 	for {
 		result, err := rdb.BRPop(ctx, 0*time.Second, "telemetry").Result()
@@ -41,12 +51,17 @@ func Publisher(url string, rdb *redis.Client) {
 	}
 }
 
-func connectWithRetries(url string) *amqp.Connection {
+func (rs *RabbitMQService) connectWithRetries() {
+	var (
+		url = viper.GetString("RABBITMQ_URL")
+	)
+
 	for {
 		conn, err := amqp.Dial(url)
 		if err == nil {
 			logrus.Info("Connected to RabbitMQ")
-			return conn
+			rs.Conn = conn
+			return
 		}
 		logrus.Errorf("failed to connect to RabbitMQ: %v", err)
 		logrus.Infof("Retrying in %v...", retryInterval)
@@ -54,16 +69,16 @@ func connectWithRetries(url string) *amqp.Connection {
 	}
 }
 
-func openChannel(conn *amqp.Connection) *amqp.Channel {
-	channel, err := conn.Channel()
+func (rs *RabbitMQService) openChannel() {
+	channel, err := rs.Conn.Channel()
 	if err != nil {
 		logrus.Fatalf("failed to open RabbitMQ channel: %v", err)
 	}
-	return channel
+	rs.Channel = channel
 }
 
-func declareQueue(ch *amqp.Channel, queueName string) {
-	_, err := ch.QueueDeclare(
+func (rs *RabbitMQService) declareQueue() {
+	_, err := rs.Channel.QueueDeclare(
 		queueName,
 		true,  // durable
 		false, // autoDelete
@@ -76,8 +91,8 @@ func declareQueue(ch *amqp.Channel, queueName string) {
 	}
 }
 
-func publishMessage(ch *amqp.Channel, queueName string, body []byte) error {
-	return ch.Publish(
+func (rs *RabbitMQService) publishMessage(body []byte) error {
+	return rs.Channel.Publish(
 		"",        // exchange
 		queueName, // routing key
 		false,     // mandatory

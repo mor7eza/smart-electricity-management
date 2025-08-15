@@ -2,13 +2,17 @@ package mqtt_broker
 
 import (
 	"context"
-	redis_db "injestion-service/internal/redis"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
+
+type MqttService struct {
+	Client mqtt.Client
+}
 
 const (
 	keepAlive     = 30 * time.Second
@@ -16,30 +20,42 @@ const (
 	retryInterval = 10 * time.Second
 )
 
-func RunMqttClient(brokerURL, clientID, topic string, rdb *redis.Client, quit chan bool) {
-	var ctx = context.Background()
+func NewService(rdb *redis.Client) *MqttService {
+	var (
+		url      = viper.GetString("MQTT_URL")
+		clientID = viper.GetString("MQTT_CLIENT_ID")
+		ctx      = context.Background()
+	)
 
 	opts := mqtt.NewClientOptions().
-		AddBroker(brokerURL).
+		AddBroker(url).
 		SetClientID(clientID).
 		SetDefaultPublishHandler(func(c mqtt.Client, m mqtt.Message) {
-			redis_db.Publish(ctx, rdb, "telemetry", m.Payload())
+			rdb.Publish(ctx, "telemetry", m.Payload())
 		}).
 		SetOrderMatters(false). // Allow out-of-order handling for speed
 		SetKeepAlive(keepAlive).
 		SetPingTimeout(pingTimeout)
 
-	client := mqtt.NewClient(opts)
+	return &MqttService{
+		Client: mqtt.NewClient(opts),
+	}
+}
+
+func (ms *MqttService) Run() {
+	var (
+		topic = viper.GetString("MQTT_TOPIC")
+	)
 	for {
-		if token := client.Connect(); token.Wait() && token.Error() != nil {
+		if token := ms.Client.Connect(); token.Wait() && token.Error() != nil {
 			logrus.Errorf("failed to connect to MQTT broker: %v", token.Error())
 			logrus.Infof("Retrying in %v...", retryInterval)
 			time.Sleep(retryInterval)
 			continue
 		}
 
-		if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-			client.Disconnect(250)
+		if token := ms.Client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
+			ms.Client.Disconnect(250)
 			logrus.Errorf("failed to subscribe to MQTT broker: %v", token.Error())
 			logrus.Infof("Retrying in %v...", retryInterval)
 			time.Sleep(retryInterval)
@@ -49,8 +65,4 @@ func RunMqttClient(brokerURL, clientID, topic string, rdb *redis.Client, quit ch
 	}
 
 	logrus.Info("Connected to MQTT broker")
-
-	<-quit
-	client.Disconnect(250)
-	logrus.Info("MQTT broker disconnected")
 }

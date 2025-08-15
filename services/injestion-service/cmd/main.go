@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"injestion-service/internal/config"
 	mqtt_broker "injestion-service/internal/mqtt"
-	"injestion-service/internal/rabbitmq"
 	redis_db "injestion-service/internal/redis"
 	"os"
 	"os/signal"
@@ -15,28 +13,17 @@ import (
 )
 
 type App struct {
-	Config config.Config
+	RedisService redis_db.RedisService
+	MqttService  mqtt_broker.MqttService
 }
 
 func main() {
-	app := App{
-		Config: config.LoadConfig(),
-	}
+	app := App{}
+	app.RedisService = *redis_db.NewService()
 
-	mqttQuit := make(chan bool)
+	app.MqttService = *mqtt_broker.NewService(app.RedisService.Client)
 
-	redisClient := redis_db.NewClient(app.Config.Redis.URL)
-	defer redisClient.Close()
-
-	go mqtt_broker.RunMqttClient(
-		fmt.Sprintf("tcp://%s:%d", app.Config.MQTT.Address, app.Config.MQTT.Port),
-		app.Config.MQTT.ClientID,
-		app.Config.MQTT.Topic,
-		redisClient,
-		mqttQuit,
-	)
-
-	go rabbitmq.Publisher(app.Config.RabbitMQ.URL, redisClient)
+	go app.MqttService.Run()
 
 	logrus.Info("Service Started Successfully")
 
@@ -44,7 +31,12 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	mqttQuit <- true
+	app.MqttService.Client.Disconnect(250)
+	app.RedisService.Client.Close()
 	time.Sleep(3 * time.Second)
 	logrus.Info("Service stopped gracefully")
+}
+
+func init() {
+	config.LoadConfig()
 }
