@@ -10,6 +10,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type payload struct {
+	DeviceID string
+	Events   []types.Event
+}
+
 func (app *App) Process() {
 	var (
 		ctx        = context.Background()
@@ -40,7 +45,17 @@ func (app *App) Process() {
 
 		// process events and send them to save
 		if len(loggerData.Events) > 0 {
+			p := payload{
+				DeviceID: loggerData.DeviceID,
+				Events:   loggerData.Events,
+			}
+
 			//send to rabbitmq
+			bytes, err := json.Marshal(p)
+			if err != nil {
+				logrus.Errorf("error marshalling event data: %v", err)
+			}
+			app.RabbitMQService.PublishMessage(bytes)
 		}
 	}
 }

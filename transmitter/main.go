@@ -83,7 +83,13 @@ func main() {
 						EnergyConsumedKWH: 1234.5 + consumed,
 						EnergyExportedKWH: 5,
 					},
-					Events: []types.Event{},
+					Events: []types.Event{
+						types.Event{
+							Type:      "OVER_VOLTAGE",
+							Value:     250.6,
+							Timestamp: time.Now().Unix(),
+						},
+					},
 					Location: types.Location{
 						Latitude:  23.45663,
 						Longitude: 12.436432,

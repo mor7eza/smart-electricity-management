@@ -2,6 +2,7 @@ package main
 
 import (
 	"billing-service/internal/config"
+	"billing-service/internal/rabbitmq"
 	redis_db "billing-service/internal/redis"
 	"os"
 	"os/signal"
@@ -12,13 +13,15 @@ import (
 )
 
 type App struct {
-	RedisService *redis_db.RedisService
+	RedisService    *redis_db.RedisService
+	RabbitMQService *rabbitmq.RabbitMQService
 }
 
 func main() {
 	var app App
 
 	app.RedisService = redis_db.NewService()
+	app.RabbitMQService = rabbitmq.NewService()
 
 	go app.Process()
 

@@ -1,7 +1,5 @@
 package types
 
-import "time"
-
 type LoggerData struct {
 	// SchemaVersion defines the version of the data schema.
 	SchemaVersion int `json:"schema_version"`
@@ -82,7 +80,7 @@ type Event struct {
 	Value float32 `json:"value"`
 
 	// Timestamp is when the event occurred.
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp int64 `json:"timestamp"`
 }
 
 type Location struct {
